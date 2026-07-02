@@ -1,0 +1,76 @@
+# ==========================
+# Logs
+# ==========================
+*.log
+
+# ==========================
+# OS
+# ==========================
+.DS_Store
+Thumbs.db
+
+# ==========================
+# Environment
+# ==========================
+.env
+.env.backup
+.env.production
+
+# ==========================
+# Laravel / PHP
+# ==========================
+.phpactor.json
+.phpunit.result.cache
+
+/.fleet
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+
+/auth.json
+
+/node_modules
+/vendor
+
+/public/build
+/public/hot
+/public/storage
+
+/storage/*.key
+/storage/pail
+
+Homestead.json
+Homestead.yaml
+
+# ==========================
+# Electron
+# ==========================
+/electron/node_modules/
+/electron/dist/
+
+# Electron packaged output
+/dist/
+/build/
+/out/
+/release/
+
+# Electron unpacked folders
+**/win-unpacked/
+**/win-x64-unpacked/
+**/win-ia32-unpacked/
+
+# Windows executables/installers
+*.exe
+*.msi
+*.zip
+*.7z
+
+# Debug symbols
+*.pdb
+
+# MariaDB runtime data
+app/mariadb/data/
+*.ib_logfile*
+*.ibd

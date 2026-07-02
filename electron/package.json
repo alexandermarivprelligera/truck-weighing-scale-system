@@ -1,0 +1,81 @@
+{
+  "name": "truck-weighing-system",
+  "version": "1.0.0",
+  "description": "Truck Weighing System",
+  "author": "Alexander Mari V. Prelligera",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.amvp.truckweighing",
+    "productName": "Truck Weighing System",
+    "win": {
+      "target": "dir",
+      "icon":"build/icon.ico"
+    },
+    "extraResources": [
+      {
+      "from": "../composer.json",
+      "to": "composer.json"
+      },
+      {
+        "from": "../app",
+        "to": "app"
+      },
+      {
+        "from": "../php",
+        "to": "php"
+      },
+      {
+        "from": "../mariadb",
+        "to": "mariadb"
+      },
+      {
+        "from": "../dist/scale-bridge.exe",
+        "to": "scale-bridge.exe"
+      },
+      {
+        "from": "../artisan",
+        "to": "artisan"
+      },
+      {
+        "from": "../bootstrap",
+        "to": "bootstrap"
+      },
+      {
+        "from": "../config",
+        "to": "config"
+      },
+      {
+        "from": "../public",
+        "to": "public"
+      },
+      {
+        "from": "../resources",
+        "to": "resources"
+      },
+      {
+        "from": "../routes",
+        "to": "routes"
+      },
+      {
+        "from": "../storage",
+        "to": "storage"
+      },
+      {
+        "from": "../vendor",
+        "to": "vendor"
+      },
+      {
+        "from": "../.env",
+        "to": ".env"
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^41.7.1",
+    "electron-builder": "^26.15.3"
+  }
+}
