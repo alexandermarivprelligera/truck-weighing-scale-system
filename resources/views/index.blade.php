@@ -88,10 +88,15 @@
         <td class="p-2">{{ $t->clerk }}</td>
         <!--td class="p-2">{{ $t->approved_by }}</!--td-->
 
-        <td class="p-2">
+        <td class="p-2 space-x-2">
             <a href="/print/{{ $t->id }}" target="_blank"
             class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600">
             Print
+            </a>
+
+            <a href="/transactions/{{ $t->id }}/edit"
+            class="bg-yellow-500 text-white px-2 py-1 rounded">
+            Edit
             </a>
         </td>
     </tr>

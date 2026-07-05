@@ -134,7 +134,9 @@ class TransactionController extends Controller
      */
     public function edit(Transaction $transaction)
     {
-        //
+        $clients = Client::orderBy('company')->get();
+
+        return view('edit', compact('transaction', 'clients'));
     }
 
     /**
@@ -142,7 +144,24 @@ class TransactionController extends Controller
      */
     public function update(Request $request, Transaction $transaction)
     {
-        //
+        $transaction->update([
+            'plate_number' => $request->plate_number,
+            'driver_name' => $request->driver_name,
+            'company' => $request->company,
+            'address' => $request->address,
+            'transaction_type' => $request->transaction_type,
+            'material' => $request->material,
+            'product' => $request->product,
+            'gross_weight' => $request->gross_weight,
+            'tare_weight' => $request->tare_weight,
+            'net_weight' => $request->gross_weight - $request->tare_weight,
+            'gross_time' => $request->gross_time,
+            'tare_time' => $request->tare_time,
+            'net_time' => $request->net_time,
+        ]);
+
+        return redirect('/transactions')
+            ->with('success','Transaction updated successfully.');
     }
 
     /**

@@ -86,6 +86,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/print-preview', [TransactionController::class, 'printPreview']);
     Route::get('/transactions/print', [TransactionController::class, 'printFiltered']);
     Route::get('/transactions/download-filtered', [TransactionController::class, 'downloadFiltered']);
+
+    Route::get('/transactions/{transaction}/edit', [TransactionController::class, 'edit']);
+
+    Route::put('/transactions/{transaction}', [TransactionController::class, 'update']);
   
 
     /*---------------\

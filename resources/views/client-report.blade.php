@@ -67,7 +67,7 @@ Client List
     </table>
 </div>
 
-<button class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">
+<button class="mt-4 bg-green-600 text-white px-4 py-2 rounded">
     Save Changes
 </button>
 

@@ -47,7 +47,7 @@
         class="border p-2 rounded w-full">
 
     <button type="submit"
-        class="bg-blue-600 text-white px-4 rounded">
+        class="bg-green-600 text-white px-4 rounded">
 
         Search
 
