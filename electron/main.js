@@ -51,6 +51,11 @@ app.whenReady().then(() => {
         }
     });
 
+    const bootstrapCache = path.join(root, "bootstrap", "cache");
+        if (!fs.existsSync(bootstrapCache)) {
+            fs.mkdirSync(bootstrapCache, { recursive: true });
+        }
+
     const sessionPath = path.join(
         root,
         'storage',
