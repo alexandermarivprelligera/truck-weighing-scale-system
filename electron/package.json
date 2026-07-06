@@ -1,7 +1,7 @@
 {
-  "name": "truck-weighing-system",
+  "name": "truck-weighing-scale-system",
   "version": "1.0.0",
-  "description": "Truck Weighing System",
+  "description": "Truck Weighing Scale System",
   "author": "Alexander Mari V. Prelligera",
   "main": "main.js",
   "scripts": {
@@ -10,7 +10,7 @@
   },
   "build": {
     "appId": "com.amvp.truckweighing",
-    "productName": "Truck Weighing System",
+    "productName": "Truck Weighing Scale System",
     "win": {
       "target": "dir",
       "icon":"build/icon.ico"
