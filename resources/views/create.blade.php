@@ -126,8 +126,8 @@
 
     <div class="grid grid-cols-3 gap-4">
         <input type="hidden" name="gross_time" id="gross_time">
-        <input type="hidden" name="tare_time" id="tare_time">
-        <input type="hidden" name="net_time" id="net_time">
+        <!--input type="hidden" name="tare_time" id="tare_time">
+        <input type="hidden" name="net_time" id="net_time"-->
     </div>
 
     <!--div class="grid grid-cols-2 gap-4"-->
@@ -367,6 +367,18 @@ document.addEventListener('DOMContentLoaded', function ()
     // =======================
     // WEIGHT CAPTURE TIMES
     // =======================
+    document.getElementById('gross_weight').addEventListener('change', function () {
+        if(this.value !== ''){
+            setTime('gross_time');
+            calculateNetWeight();
+            
+            if(document.getElementById('tare_weight').value){
+                setTime('net_time');
+            }
+        }
+    });
+
+
     document.getElementById('tare_weight').addEventListener('change', function () {
     if(this.value !== ''){
         setTime('tare_time');

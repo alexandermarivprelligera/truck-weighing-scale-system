@@ -1,7 +1,6 @@
 from flask import Flask, jsonify
 from serial.tools import list_ports
 import serial
-import threading
 import re
 import time
 
@@ -9,111 +8,104 @@ app = Flask(__name__)
 
 ser = None
 
-current_weight = "0"
+# -------------------------
+# Remember last weight
+# -------------------------
 last_weight = "0"
 last_raw = ""
-lock = threading.Lock()
+last_update = 0
 
+# -------------------------
+# AUTO DETECT SERIAL DEVICE
+# -------------------------
+ports = list_ports.comports()
 
-# ----------------------------
-# CONNECT TO SERIAL
-# ----------------------------
-def connect_serial():
-    global ser
+print("Number of ports:", len(ports))
+print("Detected Ports:")
 
-    while ser is None:
-        ports = list_ports.comports()
-        print("\nSearching serial ports...")
-        for p in ports:
-            print(f"{p.device} - {p.description}")
-            try:
-                ser = serial.Serial(
-                    p.device,
-                    baudrate=9600,
-                    timeout=1
-                )
-                print(f"Connected to {p.device}")
-                time.sleep(2)
-                return
-            except Exception as e:
-                print(e)
-        print("Retrying in 3 seconds...\n")
-        time.sleep(3)
+for p in ports:
 
+    print(f"{p.device} - {p.description}")
 
-# ----------------------------
-# CONTINUOUS SERIAL READER
-# ----------------------------
-def serial_reader():
+    try:
 
-    global current_weight
+        ser = serial.Serial(
+            port=p.device,
+            baudrate=9600,
+            timeout=1
+        )
+
+        print(f"Connected to {p.device}")
+
+        time.sleep(2)
+
+        break
+
+    except Exception as e:
+
+        print(f"Failed to connect to {p.device}: {e}")
+
+# -------------------------
+# WEIGHT ENDPOINT
+# -------------------------
+@app.route('/weight')
+def weight():
+
     global last_weight
     global last_raw
-    global ser
+    global last_update
 
-    while True:
-        if ser is None:
-            connect_serial()
-        try:
-            if ser.in_waiting:
-                line = ser.readline().decode(
-                    "utf-8",
-                    errors="ignore"
-                ).strip()
-                
-                if line:
-                    last_raw = line
-                    print("RAW:", line)
-                    match = re.search(
-                        r'[-+]?\d*\.?\d+',
-                        line
-                    )
-
-                    if match:
-                        weight = match.group()
-                        with lock:
-                            current_weight = weight
-                            last_weight = weight
-
-        except Exception as e:
-            print("Serial Lost:", e)
-            try:
-                ser.close()
-            except:
-                pass
-            ser = None
-            time.sleep(2)
-
-
-# ----------------------------
-# WEIGHT ENDPOINT
-# ----------------------------
-@app.route("/weight")
-def weight():
-    with lock:
+    if ser is None:
         return jsonify({
-            "weight": last_weight,
-            "live": current_weight,
-            "raw": last_raw
-
+            "error": "No serial device found"
         })
 
+    try:
 
-# ----------------------------
-# START THREAD
-# ----------------------------
-threading.Thread(
-    target=serial_reader,
-    daemon=True
-).start()
+        line = ser.readline().decode(
+            'utf-8',
+            errors='ignore'
+        ).strip()
 
+        if line:
 
-# ----------------------------
+            print("RAW:", line)
+
+            last_raw = line
+
+            match = re.search(
+                r'[-+]?\d*\.?\d+',
+                line
+            )
+
+            if match:
+
+                last_weight = match.group()
+                last_update = time.time()
+
+        # Keep displaying last weight for 3 seconds
+        if time.time() - last_update <= 3:
+            value = last_weight
+        else:
+            value = "0"
+
+        return jsonify({
+            "weight": value,
+            "raw": last_raw
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "error": str(e)
+        })
+
+# -------------------------
 # START SERVER
-# ----------------------------
-if __name__ == "__main__":
+# -------------------------
+if __name__ == '__main__':
     app.run(
-        host="0.0.0.0",
+        host='0.0.0.0',
         port=5000,
         debug=False
     )

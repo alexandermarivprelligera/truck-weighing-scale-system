@@ -189,7 +189,7 @@
     <input type="hidden" name="net_weight"  id="print_net_weight" value="{{ $transaction->net_weight }}">
     <input type="hidden" name="gross_time"  id="print_gross_time" value="{{ $transaction->gross_time }}">
     <input type="hidden" name="tare_time"  id="print_tare_time" value="{{ $transaction->tare_time }}">
-    <input type="hidden" name="net_time"  id="print_net_time" value="{{ $transaction->net_time }}">
+    <!--input type="hidden" name="net_time"  id="print_net_time" value="{{ $transaction->net_time }}"-->
     <input type="hidden" name="clerk" value="{{ auth()->user()->name }}">
 
         <button type="submit" onClick="preparePrint()" class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-900">

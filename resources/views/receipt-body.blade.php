@@ -28,31 +28,28 @@
 </div>
 
 <hr>
-
+<p>Date: {{ date('F d, Y') }}</p>
 <p>Transaction #: {{ $transaction->transaction_no }}</p>
 <p>Plate #: {{ $transaction->plate_number }}</p>
 <!--p>Driver: {{ $transaction->driver_name }}</!--p>
 <p>Representative: {{$transaction->representative_name}}</p-->
 <p>Material: {{ $transaction->material }}</p>
-<p>Company: {{ $transaction->company }}</p>
+<p>Client: {{ $transaction->company }}</p>
 <p>Address: {{ $transaction->address }}</p>
 
 <hr>
 
-<p>Gross: {{ $transaction->gross_weight }} kg</p>
-<p>{{ $transaction->gross_time }}</p>
+<p>Gross: {{ $transaction->gross_weight }} kg  {{ $transaction->gross_time }}</p>
 
-<p>Tare: {{ $transaction->tare_weight }} kg</p>
-<p>{{ $transaction->tare_time }}</p>
+<p>Tare: {{ $transaction->tare_weight }} kg   {{ $transaction->tare_time }}</p>
 
 <p>Net: {{ $transaction->net_weight }} kg</p>
-<p>{{ $transaction->net_time }}</p>
+<!--p>{{ $transaction->net_time }}</!--p-->
 
 <hr>
 
 <div class="grid grid-cols-2 gap-4">
 <p>Clerk: {{ $transaction->clerk }}</p>
-<!--p>Approved by: {{ $transaction->approved_by }}</!--p-->
 <p>Driver: {{ $transaction->driver_name}}</p>
 </div>
 

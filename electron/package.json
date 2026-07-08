@@ -12,7 +12,7 @@
     "appId": "com.amvp.truckweighing",
     "productName": "Truck Weighing Scale System",
     "win": {
-      "target": "nsis",
+      "target": "dir",
       "icon":"build/icon.ico"
     },
     "extraResources": [
