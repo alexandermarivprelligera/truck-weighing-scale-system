@@ -2,9 +2,10 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\DriverController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Models\Transaction;
 use App\Models\Client;
@@ -15,32 +16,10 @@ use App\Models\Client;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/php-binary', function () {
-    return [
-        'php_binary' => PHP_BINARY,
-        'pdo_mysql' => extension_loaded('pdo_mysql'),
-        'mysqli' => extension_loaded('mysqli'),
-    ];
-});
-
-Route::get('/phpinfo-test', function () {
-    phpinfo();
-});
-Route::get('/debug-db', function () {
-    return [
-        'default' => config('database.default'),
-        'database' => DB::connection()->getDatabaseName(),
-    ];
-});
 Route::get('/', function () {
-    return auth()->check() 
-        ? redirect('/dashboard') 
+    return auth()->check()
+        ? redirect('/dashboard')
         : redirect('/login');
-});
-
-Route::get('/test-login', function () {
-    auth()->loginUsingId(1);
-    return redirect('/dashboard');
 });
 
 
@@ -108,11 +87,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/client-report/save', [ClientController::class, 'saveReports']);
     Route::delete('/clients/{client}',[ClientController::class, 'destroy']);
 
-    // Profile (Breeze default)
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
+    //Drivers
+    Route::post('/drivers', [DriverController::class, 'store']);
+    Route::delete('/drivers/{driver}', [DriverController::class, 'destroy']);
 
     //Fetch address from previous transactions
     Route::get('/company-address', function (Request $request) {
@@ -126,6 +103,12 @@ Route::middleware(['auth'])->group(function () {
             'address' => $last?->address
         ]);
     });
+
+    // Profile (Breeze default)
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
 
 
 /*

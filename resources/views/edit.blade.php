@@ -17,32 +17,23 @@
     @method('PUT')
 
 <input type="hidden" name="transaction_no" value="{{ $transaction->transaction_no }}">
-    <!-- Plate / Rep / Driver -->
+    <!-- Number / Client / Address -->
     <div class="grid grid-cols-3 gap-4">
         <!--div class="mb-4"-->
         <!--label-- class="font-semibold">Transaction No.</!--label-->
         
 
         <input type="text" value="{{ $transaction->transaction_no }}" readonly class="border rounded p-2 bg-gray-100"> <!--/div-->
-        
-        <input type="text" class="p-2 border rounded w-full focus:ring-2 focus:ring-blue-500" name="plate_number" 
-            value="{{ old('plate_number', $transaction->plate_number) }}" placeholder="Plate Number">
-        <!--input type="text" class="p-2 border rounded w-full focus:ring-2 focus:ring-blue-500" name="representative_name" placeholder="Representative Name"-->
-        <input type="text" class="p-2 border rounded w-full focus:ring-2 focus:ring-blue-500" name="driver_name" 
-            value="{{ old('driver_name', $transaction->driver_name) }}" placeholder="Driver Name">
-    </div>
-
-    <!-- Address / Company -->
-    <div class="grid grid-cols-2 gap-4">
-        <select id="company_select" name="company" class="w-full p-2 border rounded">
+        <select id="company_select" name="client_id" required class="w-full p-2 border rounded">
             <option value="">
                 Select Client
             </option>
             @foreach($clients as $client)
                 <option
-                    value="{{ $client->company }}"
-                    {{ $transaction->company == $client->company ? 'selected' : '' }}
-                    data-address="{{ $client->address }}">
+                    value="{{ $client->id }}"
+                    {{ $transaction->client_id == $client->id || (!$transaction->client_id && $transaction->company == $client->company) ? 'selected' : '' }}
+                    data-address="{{ $client->address }}"
+                    data-drivers='@json($client->drivers->map(fn ($driver) => ["id" => $driver->id, "driver_name" => $driver->driver_name, "plate_number" => $driver->plate_number])->values())'>
                     {{ $client->company }}
                 </option>
             @endforeach
@@ -52,6 +43,18 @@
 
         <input type="text" id="address" class="p-2 border rounded w-full focus:ring-2 focus:ring-blue-500" name="address" 
             value="{{ old('address',$transaction->address) }}" placeholder="Address">
+        
+    </div>
+
+    <!-- Plate / Driver -->
+    <div class="grid grid-cols-2 gap-4">
+        <select id="plate_number" name="plate_number" disabled class="p-2 border rounded w-full">
+            <option value="">Select client first</option>
+        </select>
+        <select id="driver_name" name="driver_name" disabled class="p-2 border rounded w-full">
+            <option value="">Select client first</option>
+        </select>
+        <input type="hidden" id="driver_id" name="driver_id">
     </div>
 
     <!-- Materials / Product / Moisture -->
@@ -205,9 +208,9 @@
 //======================
     function preparePrint() {
         document.getElementById('print_transaction_no').value = document.querySelector('input[name="transaction_no"]').value;
-        document.getElementById('print_plate_number').value = document.querySelector('input[name="plate_number"]').value;
-        document.getElementById('print_driver_name').value = document.querySelector('input[name="driver_name"]').value;
-        document.getElementById('print_company').value = document.querySelector('select[name="company"]').value;
+        document.getElementById('print_plate_number').value = document.querySelector('select[name="plate_number"]').selectedOptions[0]?.text || '';
+        document.getElementById('print_driver_name').value = document.querySelector('select[name="driver_name"]').selectedOptions[0]?.text || '';
+        document.getElementById('print_company').value = document.querySelector('select[name="client_id"]').selectedOptions[0]?.text || '';
         document.getElementById('print_address').value = document.querySelector('input[name="address"]').value;
         document.getElementById('print_transaction_type').value = document.querySelector('select[name="transaction_type"]').value;
         let material = document.querySelector('input[name="material"]:checked');
@@ -348,12 +351,40 @@ document.addEventListener('DOMContentLoaded', function ()
             'change',
             function ()
             {
-                let selected =
-                    this.options[this.selectedIndex];
-                document.getElementById('address').value =
-                    selected.dataset.address || '';
+                let selected = this.options[this.selectedIndex];
+                document.getElementById('address').value = selected.dataset.address || '';
+                const drivers = JSON.parse(selected.dataset.drivers || '[]');
+                const driverSelect = document.getElementById('driver_name');
+                const plateSelect = document.getElementById('plate_number');
+                const driverId = document.getElementById('driver_id');
+
+                driverSelect.innerHTML = drivers.length ? '<option value="">Select Driver</option>' : '<option value="">No registered drivers</option>';
+                plateSelect.innerHTML = drivers.length ? '<option value="">Select Plate Number</option>' : '<option value="">No registered drivers</option>';
+                driverSelect.disabled = !drivers.length;
+                plateSelect.disabled = !drivers.length;
+                driverId.value = '';
+                drivers.forEach(driver => {
+                    const driverOption = new Option(driver.driver_name, driver.driver_name);
+                    driverOption.dataset.driverId = driver.id;
+                    driverSelect.add(driverOption);
+                    plateSelect.add(new Option(driver.plate_number, driver.plate_number));
+                });
+
+                const savedDriverName = @json(old('driver_name', $transaction->driver_name));
+                const savedPlateNumber = @json(old('plate_number', $transaction->plate_number));
+                const existingDriver = drivers.find(driver => driver.driver_name === savedDriverName);
+                if (existingDriver) {
+                    driverSelect.value = savedDriverName;
+                    driverId.value = existingDriver.id;
+                }
+                plateSelect.value = savedPlateNumber;
             }
         );
+        document.getElementById('driver_name').addEventListener('change', function () {
+            document.getElementById('driver_id').value =
+                this.options[this.selectedIndex]?.dataset.driverId || '';
+        });
+        companySelect.dispatchEvent(new Event('change'));
     }
     // =======================
     // MANUAL COMPANY INPUT

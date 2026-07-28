@@ -102,17 +102,24 @@
         @endforeach
     </tbody>
 
-    <!--tfoot>
+    <tfoot>
+        <tr>
+            <td colspan="6" align="right">
+            <strong>Total Transactions</strong>
+            </td>
+            <td>
+            <strong>{{ number_format($totalTransactions) }}</strong>
+            </td>
+        </tr>
         <tr>
             <td colspan="6" align="right">
             <strong>Total Net Weight</strong>
             </td>
-
-            <td colspan="2">
-            <strong>{{ number_format($transactions->sum('net_weight'),2) }}</strong>
+            <td>
+            <strong>{{ number_format($totalNetWeight) }}</strong>
             </td>
         </tr>
-    </!--tfoot-->
+    </tfoot>
 
 </table>
 

@@ -15,37 +15,38 @@
 <form method="POST" action="/transactions" class="space-y-4">
     @csrf
 <input type="hidden" name="transaction_no" value="{{ $transactionNo }}">
-    <!-- Plate / Rep / Driver -->
+    <!-- Number / Client / Address -->
     <div class="grid grid-cols-3 gap-4">
         <!--div class="mb-4"-->
         <!--label-- class="font-semibold">Transaction No.</!--label-->
-        
 
         <input type="text" value="{{ $transactionNo }}" readonly class="border rounded p-2 bg-gray-100"> <!--/div-->
-        
-        <input type="text" class="p-2 border rounded w-full focus:ring-2 focus:ring-blue-500" name="plate_number" placeholder="Plate Number">
-        <!--input type="text" class="p-2 border rounded w-full focus:ring-2 focus:ring-blue-500" name="representative_name" placeholder="Representative Name"-->
-        <input type="text" class="p-2 border rounded w-full focus:ring-2 focus:ring-blue-500" name="driver_name" placeholder="Driver Name">
-    </div>
-
-    <!-- Address / Company -->
-    <div class="grid grid-cols-2 gap-4">
-        <select id="company_select" name="company" class="w-full p-2 border rounded">
+        <select id="company_select" name="client_id" required class="w-full p-2 border rounded">
             <option value="">
                 Select Client
             </option>
             @foreach($clients as $client)
                 <option
-                    value="{{ $client->company }}"
-                    data-address="{{ $client->address }}">
+                    value="{{ $client->id }}"
+                    data-address="{{ $client->address }}"
+                    data-drivers='@json($client->drivers->map(fn ($driver) => ["id" => $driver->id, "driver_name" => $driver->driver_name, "plate_number" => $driver->plate_number])->values())'>
                     {{ $client->company }}
                 </option>
             @endforeach
         </select>
-
         <!--input type="text" id="company" name="company" class="w-full p-2 border rounded" placeholder="New Client"-->
-
         <input type="text" id="address" class="p-2 border rounded w-full focus:ring-2 focus:ring-blue-500" name="address" placeholder="Address">
+    </div>
+
+    <!-- Plate Number / Driver -->
+    <div class="grid grid-cols-2 gap-4">
+        <select id="plate_number" name="plate_number" disabled class="p-2 border rounded w-full">
+            <option value="">Select client first</option>
+        </select>
+        <select id="driver_name" name="driver_name" disabled class="p-2 border rounded w-full">
+            <option value="">Select client first</option>
+        </select>
+        <input type="hidden" id="driver_id" name="driver_id">
     </div>
 
     <!-- Materials / Product / Moisture -->
@@ -294,10 +295,32 @@ document.addEventListener('DOMContentLoaded', function ()
             {
                 let selected =
                     this.options[this.selectedIndex];
-                document.getElementById('address').value =
-                    selected.dataset.address || '';
+                document.getElementById('address').value = selected.dataset.address || '';
+                const drivers = JSON.parse(selected.dataset.drivers || '[]');
+                const driverSelect = document.getElementById('driver_name');
+                const plateSelect = document.getElementById('plate_number');
+                const driverId = document.getElementById('driver_id');
+                const placeholder = '<option value="">No registered drivers</option>';
+
+                driverSelect.innerHTML = drivers.length ? '<option value="">Select Driver</option>' : placeholder;
+                plateSelect.innerHTML = drivers.length ? '<option value="">Select Plate Number</option>' : placeholder;
+                driverSelect.disabled = !drivers.length;
+                plateSelect.disabled = !drivers.length;
+                driverId.value = '';
+
+                drivers.forEach(driver => {
+                    const driverOption = new Option(driver.driver_name, driver.driver_name);
+                    driverOption.dataset.driverId = driver.id;
+                    driverSelect.add(driverOption);
+                    plateSelect.add(new Option(driver.plate_number, driver.plate_number));
+                });
             }
         );
+
+        document.getElementById('driver_name').addEventListener('change', function () {
+            document.getElementById('driver_id').value =
+                this.options[this.selectedIndex]?.dataset.driverId || '';
+        });
     }
     // =======================
     // MANUAL COMPANY INPUT

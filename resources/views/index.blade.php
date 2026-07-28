@@ -34,23 +34,33 @@
         Filter
     </button>
 
-    <a href="/transactions?month=1"
+    <a href="/transactions?company={{ urlencode(request('company')) }}&month=1"
         class="bg-green-600 text-white px-3 py-2 rounded  hover:bg-green-800 transition">
         This Month
     </a>
 
-    <a href="/transactions/print?company={{ request('company') }}&start_date={{ request('start_date') }}&end_date={{ request('end_date') }}"
+    <a href="/transactions/print?company={{ urlencode(request('company')) }}&start_date={{ request('start_date') }}&end_date={{ request('end_date') }}&month={{ request('month') }}"
         target="_blank"
         class="bg-orange-600 text-white px-3 py-2 rounded  hover:bg-orange-800 transition">
         Print Filtered
     </a>
 
-    <a href="/transactions/download-filtered?company={{ request('company') }}&start_date={{ request('start_date') }}&end_date={{ request('end_date') }}"
+    <a href="/transactions/download-filtered?company={{ urlencode(request('company')) }}&start_date={{ request('start_date') }}&end_date={{ request('end_date') }}&month={{ request('month') }}"
         class="bg-purple-600 text-white px-3 py-2 rounded  hover:bg-purple-800 transition">
         Download PDF
     </a>
 </form>
 
+<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div class="rounded bg-blue-50 p-4 shadow">
+        <p class="text-sm text-gray-600">Total Transactions</p>
+        <p class="text-2xl font-bold">{{ number_format($totalTransactions) }}</p>
+    </div>
+    <div class="rounded bg-green-50 p-4 shadow">
+        <p class="text-sm text-gray-600">Total Net Weight</p>
+        <p class="text-2xl font-bold">{{ number_format($totalNetWeight) }}</p>
+    </div>
+</div>
 
 <table class="w-full bg-white shadow rounded">
     <thead>

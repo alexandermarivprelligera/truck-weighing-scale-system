@@ -17,19 +17,22 @@ class ClientController extends Controller
                 '%' . $request->search . '%');
         }
 
-        $clients = $query
-            ->orderBy('company')
-            ->get();
+        $clients = $query->with('drivers')->orderBy('company')->get();
 
         return view('clients', compact('clients'));
     }
 
     public function store(Request $request)
     {
-        Client::create([
-            'company' => $request->company,
-            'address' => $request->address
-        ]);
+        Client::create($request->validate([
+            'company' => ['required', 'string', 'max:255'],
+            'address' => ['required', 'string', 'max:255'],
+            'branch_code' => ['nullable', 'string', 'max:255'],
+            'tin_number' => ['nullable', 'string', 'max:255'],
+            'contact_person' => ['nullable', 'string', 'max:255'],
+            'contact_number' => ['nullable', 'string', 'max:255'],
+            'mayor' => ['nullable', 'string', 'max:255'],
+        ]));
 
         return redirect('/clients')
             ->with('success', 'Client Registered');
@@ -47,8 +50,9 @@ class ClientController extends Controller
     public function report($id)
     {
         $client = Client::with('transactions')->findOrFail($id);
+        $clients = collect([$client]);
 
-        return view('client-report',compact('client'));
+        return view('client-report',compact('clients'));
     }
 
     public function print($id)

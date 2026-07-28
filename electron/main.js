@@ -8,6 +8,36 @@ let maria;
 let laravel;
 let scale;
 
+/** Start a local dependency and make its output visible in the Electron log. */
+function startService(name, command, args, cwd) {
+    if (path.isAbsolute(command) && !fs.existsSync(command)) {
+        console.error(`${name} was not started because its executable is missing: ${command}`);
+        return null;
+    }
+
+    const child = spawn(command, args, {
+        cwd,
+        windowsHide: true
+    });
+
+    child.on('error', error => console.error(`${name} spawn error:`, error));
+    child.on('exit', (code, signal) => {
+        console.log(`${name} exited (code: ${code}, signal: ${signal})`);
+    });
+    child.stdout?.on('data', data => console.log(`${name}: ${data.toString()}`));
+    child.stderr?.on('data', data => console.error(`${name}: ${data.toString()}`));
+
+    return child;
+}
+
+/** Stop only child processes started by this Electron instance. */
+function stopService(child, name) {
+    if (child && !child.killed) {
+        console.log(`Stopping ${name}...`);
+        child.kill();
+    }
+}
+
 function createWindow() {
     const win = new BrowserWindow({
         width: 1400,
@@ -94,33 +124,30 @@ app.whenReady().then(() => {
         'php.exe'
     );
 
-    const scalePath = app.isPackaged
+    // Development uses the current Python source; packaged builds use the
+    // executable included through electron/package.json extraResources.
+    const scaleCommand = app.isPackaged
         ? path.join(root, 'scale-bridge.exe')
-        : path.join(root, 'dist', 'scale-bridge.exe');
+        : (process.env.PYTHON_EXECUTABLE || 'python');
+    const scaleArguments = app.isPackaged
+        ? []
+        : [path.join(root, 'scale-bridge.py')];
 
     console.log('Maria Path:', mariaPath);
     console.log('Maria Ini:', mariaIni);
     console.log('Maria CWD:', path.join(root, 'app', 'mariadb'));
 
-    maria = spawn(
+    maria = startService(
+        'MariaDB',
         mariaPath,
         [
             '--defaults-file=' + mariaIni
         ],
-        {
-            cwd: path.join(root, 'app', 'mariadb')
-        }
+        path.join(root, 'app', 'mariadb')
     );
 
-    maria.on('error', err => {
-        console.error('Maria Spawn Error:', err);
-    });
-
-    maria.on('exit', (code, signal) => {
-        console.log('Maria Exit:', code, signal);
-    });
-
-    laravel = spawn(
+    laravel = startService(
+        'Laravel',
         phpPath,
         [
             'artisan',
@@ -128,32 +155,24 @@ app.whenReady().then(() => {
             '--host=127.0.0.1',
             '--port=8000'
         ],
-        {
-            cwd: root
-        }
+        root
     );
 
-    scale = spawn(
-        scalePath,
-        [],
-        {
-            cwd: root
-        }
+    scale = startService(
+        'Scale bridge',
+        scaleCommand,
+        scaleArguments,
+        root
     );
-
-    maria.stdout?.on('data', d => console.log('MariaDB:', d.toString()));
-    maria.stderr?.on('data', d => console.error('MariaDB:', d.toString()));
-
-    laravel.stdout?.on('data', d => console.log('Laravel:', d.toString()));
-    laravel.stderr?.on('data', d => console.error('Laravel:', d.toString()));
-
-    scale.stdout?.on('data', d => console.log('Scale:', d.toString()));
-    scale.stderr?.on('data', d => console.error('Scale:', d.toString()));
 
     createWindow();
 });
 
 app.on('before-quit', () => {
+    stopService(scale, 'scale bridge');
+    stopService(laravel, 'Laravel');
+    stopService(maria, 'MariaDB');
+
     try { execSync('taskkill /F /IM scale-bridge.exe'); } catch {}
     try { execSync('taskkill /F /IM php.exe'); } catch {}
     try { execSync('taskkill /F /IM mariadbd.exe'); } catch {}

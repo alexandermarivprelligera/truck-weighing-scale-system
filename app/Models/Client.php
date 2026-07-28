@@ -25,4 +25,9 @@ class Client extends Model
         return $this->hasMany(Transaction::class, 
         'company', 'company');
     }
+
+    public function drivers()
+    {
+        return $this->hasMany(Driver::class);
+    }
 }

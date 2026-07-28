@@ -13,35 +13,22 @@ class TransactionController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $query = Transaction::query();
-
-        if(request('company')) {
-            $query->where('company', request('company'));
-        }
-
-        if(request('start_date') && request('end_date')) {
-            $query->whereBetween('created_at', [
-                request('start_date') . ' 00:00:00',
-                request('end_date') . ' 23:59:59'
-            ]);
-        }
-
-        if(request('month')) {
-            $query->whereMonth('created_at', now()->month)
-                ->whereYear('created_at', now()->year);
-        }
-
-        $transactions = $query
+        $transactions = $this->filteredTransactionsQuery($request)
             ->orderBy('transaction_no')
             ->get();
 
-        $clients = Client::orderBy('company')->get();
+        $totalTransactions = $transactions->count();
+        $totalNetWeight = $transactions->sum('net_weight');
+
+        $clients = Client::with('drivers')->orderBy('company')->get();
 
         return view('index', compact(
             'transactions',
-            'clients'
+            'clients',
+            'totalTransactions',
+            'totalNetWeight'
         ));
     }
 
@@ -50,7 +37,7 @@ class TransactionController extends Controller
      */
     public function create()
     {
-        $clients = Client::orderBy('company')->get();
+        $clients = Client::with('drivers')->orderBy('company')->get();
 
         $today = Carbon::now()->format('md');
 
@@ -77,26 +64,46 @@ class TransactionController extends Controller
     public function store(Request $request)
     {
         return DB::transaction(function() use($request) {
-            //dd($request->all());
-        
+
+        $today = Carbon::now()->format('md');
+
+        $last = Transaction::where('transaction_no', 'like', $today . '-%')
+            ->lockForUpdate()
+            ->orderByDesc('id')
+            ->first();
+
+        if ($last) {
+            $lastNumber = (int) substr($last->transaction_no, 5);
+            $nextNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $nextNumber = '0001';
+        }
+
+        $transactionNo = $today . '-' . $nextNumber;
+
+        $validated = $request->validate([
+            'client_id' => ['required', 'exists:clients,id'],
+            'driver_id' => ['nullable', 'exists:drivers,id'],
+        ]);
+
+        $client = Client::findOrFail($validated['client_id']);
+
+        if (!empty($validated['driver_id']) && !$client->drivers()->whereKey($validated['driver_id'])->exists()) {
+            abort(422, 'The selected driver does not belong to this client.');
+        }
+
         $netWeight = $request->gross_weight - $request->tare_weight;
 
-        $client = Client::firstOrCreate(
-        ['company' => $request->company],
-        ['address' => $request->address]
-        );
-
         Transaction::create([
-            'transaction_no' => $request->transaction_no,
+            'transaction_no' => $transactionNo,
             'plate_number' => $request->plate_number,
             'driver_name' => $request->driver_name,
             'representative_name' => $request->representative_name,
             'transaction_type' => $request->transaction_type,
             'material' => $request->material,
             'product' => $request->product,
-            'company' => $request->company,
-            'address' => $request->address,
-            //'moisture_content' => $request->moisture_content,
+            'company' => $client->company,
+            'address' => $client->address,
             'gross_weight' => $request->gross_weight,
             'tare_weight' => $request->tare_weight,
             'net_weight' => $netWeight,
@@ -104,23 +111,22 @@ class TransactionController extends Controller
             'approved_by' => $request->approved_by,
             'client_id' => $client->id,
 
-            //timestamps when weight was taken
-            'gross_time' => $request->gross_time 
-            ? Carbon::parse($request->gross_time)->format('Y-m-d H:i:s') 
+            'gross_time' => $request->gross_time
+            ? Carbon::parse($request->gross_time)->format('Y-m-d H:i:s')
             : null,
 
             'tare_time' => $request->tare_time
-            ? Carbon::parse($request->tare_time)->format('Y-m-d H:i:s') 
+            ? Carbon::parse($request->tare_time)->format('Y-m-d H:i:s')
             : null,
 
             'net_time' => $request->net_time
-            ? Carbon::parse($request->net_time)->format('Y-m-d H:i:s') 
+            ? Carbon::parse($request->net_time)->format('Y-m-d H:i:s')
             : null,
-    ]);
+        ]);
 
-    return redirect('/transactions/create')->with('success', 'Transaction Saved!');
-    });
-}
+        return redirect('/transactions/create')->with('success', 'Transaction Saved!');
+        });
+    }
     /**
      * Display the specified resource.
      */
@@ -134,7 +140,7 @@ class TransactionController extends Controller
      */
     public function edit(Transaction $transaction)
     {
-        $clients = Client::orderBy('company')->get();
+        $clients = Client::with('drivers')->orderBy('company')->get();
 
         return view('edit', compact('transaction', 'clients'));
     }
@@ -144,11 +150,22 @@ class TransactionController extends Controller
      */
     public function update(Request $request, Transaction $transaction)
     {
+        $validated = $request->validate([
+            'client_id' => ['required', 'exists:clients,id'],
+            'driver_id' => ['nullable', 'exists:drivers,id'],
+        ]);
+        $client = Client::findOrFail($validated['client_id']);
+
+        if (!empty($validated['driver_id']) && !$client->drivers()->whereKey($validated['driver_id'])->exists()) {
+            abort(422, 'The selected driver does not belong to this client.');
+        }
+
         $transaction->update([
             'plate_number' => $request->plate_number,
             'driver_name' => $request->driver_name,
-            'company' => $request->company,
-            'address' => $request->address,
+            'company' => $client->company,
+            'address' => $client->address,
+            'client_id' => $client->id,
             'transaction_type' => $request->transaction_type,
             'material' => $request->material,
             'product' => $request->product,
@@ -180,51 +197,54 @@ class TransactionController extends Controller
 
     public function printFiltered(Request $request)
     {
-        $query = Transaction::query();
-
-        if($request->company){
-            $query->where('company', $request->company);
-        }
-
-        if($request->start_date && $request->end_date){
-            $query->whereBetween('created_at', [
-                $request->start_date . ' 00:00:00',
-                $request->end_date . ' 23:59:59'
-            ]);
-        }
-
-        $transactions = $query
+        $transactions = $this->filteredTransactionsQuery($request)
             ->orderBy('transaction_no')
             ->get();
 
-        return view('print-filtered', compact('transactions'));
+        $totalTransactions = $transactions->count();
+        $totalNetWeight = $transactions->sum('net_weight');
+
+        return view('print-filtered', compact('transactions', 'totalTransactions', 'totalNetWeight'));
     }
 
     public function downloadFiltered(Request $request)
     {
-        $query = Transaction::query();
-
-        if($request->company){
-            $query->where('company', $request->company);
-        }
-
-        if($request->start_date && $request->end_date){
-            $query->whereBetween('created_at', [
-                $request->start_date . ' 00:00:00',
-                $request->end_date . ' 23:59:59'
-            ]);
-        }
-
-        $transactions = $query
+        $transactions = $this->filteredTransactionsQuery($request)
             ->orderBy('transaction_no')
             ->get();
 
+        $totalTransactions = $transactions->count();
+        $totalNetWeight = $transactions->sum('net_weight');
+
         $pdf = Pdf::loadView(
         'download-filtered',
-        compact('transactions')
+        compact('transactions', 'totalTransactions', 'totalNetWeight')
         );
 
         return $pdf->download('Filtered-Transactions.pdf');
+    }
+
+    private function filteredTransactionsQuery(Request $request)
+    {
+        $query = Transaction::query();
+
+        if ($request->company) {
+            $query->where('company', $request->company);
+        }
+
+        if ($request->start_date && $request->end_date) {
+            $query->whereBetween('created_at', [
+                $request->start_date . ' 00:00:00',
+                $request->end_date . ' 23:59:59',
+            ]);
+        }
+
+        if ($request->month) {
+            $query->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year);
+        }
+
+        return $query;
     }
     
     public function weight()

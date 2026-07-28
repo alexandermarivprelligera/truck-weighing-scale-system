@@ -37,6 +37,23 @@
     </button>
 </form>
 
+<!-- Register Driver -->
+<form method="POST" action="/drivers" class="space-y-4 mb-6 border-t pt-6">
+    @csrf
+    <h3 class="text-lg font-semibold">Register Driver</h3>
+    <div class="grid grid-cols-3 gap-4">
+        <select name="client_id" required class="w-full p-2 border rounded">
+            <option value="">Select Client</option>
+            @foreach($clients as $client)
+                <option value="{{ $client->id }}">{{ $client->company }}</option>
+            @endforeach
+        </select>
+        <input type="text" name="driver_name" required placeholder="Driver Name" class="w-full p-2 border rounded">
+        <input type="text" name="plate_number" required placeholder="Plate Number" class="w-full p-2 border rounded">
+    </div>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Register Driver</button>
+</form>
+
 <!--Search Filter-->
 <form method="GET" action="/clients" class="flex gap-2 mb-4">
 
@@ -155,6 +172,40 @@
                 <span class="font-semibold">Contact Number</span>
                 <span>{{ $client->contact_number ?? 'N/A' }}</span>
             </div>
+        </div>
+
+        <div class="border-t mt-4 pt-4">
+            <h3 class="font-semibold mb-2">Registered Drivers</h3>
+            @if($client->drivers->isNotEmpty())
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border border-gray-200 rounded">
+                        <thead class="bg-gray-100 text-gray-700">
+                            <tr>
+                                <th class="px-3 py-2 font-semibold">Driver Name</th>
+                                <th class="px-3 py-2 font-semibold">Plate Number</th>
+                                <th class="px-3 py-2 font-semibold text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @foreach($client->drivers as $driver)
+                                <tr>
+                                    <td class="px-3 py-2">{{ $driver->driver_name }}</td>
+                                    <td class="px-3 py-2">{{ $driver->plate_number }}</td>
+                                    <td class="px-3 py-2 text-right">
+                                        <form action="/drivers/{{ $driver->id }}" method="POST" onsubmit="return confirm('Remove this driver?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="text-red-600 hover:text-red-800">Remove</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <p class="text-sm text-gray-500">No drivers registered.</p>
+            @endif
         </div>
 
         <div class="border-t mt-4 pt-4 flex flex-wrap gap-2">
