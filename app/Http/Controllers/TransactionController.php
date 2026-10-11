@@ -16,7 +16,8 @@ class TransactionController extends Controller
     public function index(Request $request)
     {
         $transactions = $this->filteredTransactionsQuery($request)
-            ->orderBy('transaction_no')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get();
 
         $totalTransactions = $transactions->count();
@@ -43,7 +44,7 @@ class TransactionController extends Controller
 
         /*Lock rows to avoid duplicates*/
         $last = Transaction::where('transaction_no', 'like', $today . '-%')
-            ->orderByDesc('id')
+            ->orderBy('id', 'asc')
             ->first();
 
         if ($last) {
@@ -69,7 +70,7 @@ class TransactionController extends Controller
 
         $last = Transaction::where('transaction_no', 'like', $today . '-%')
             ->lockForUpdate()
-            ->orderByDesc('id')
+            ->orderBy('id', 'asc')
             ->first();
 
         if ($last) {
@@ -92,7 +93,7 @@ class TransactionController extends Controller
             abort(422, 'The selected driver does not belong to this client.');
         }
 
-        $netWeight = $request->gross_weight - $request->tare_weight;
+        $netWeight = ($request->gross_weight + $request->add_on) - $request->tare_weight;
 
         Transaction::create([
             'transaction_no' => $transactionNo,
@@ -105,6 +106,7 @@ class TransactionController extends Controller
             'company' => $client->company,
             'address' => $client->address,
             'gross_weight' => $request->gross_weight,
+            'add_on' => $request->add_on,
             'tare_weight' => $request->tare_weight,
             'net_weight' => $netWeight,
             'clerk' => auth()->user()->name,
@@ -170,8 +172,9 @@ class TransactionController extends Controller
             'material' => $request->material,
             'product' => $request->product,
             'gross_weight' => $request->gross_weight,
+            'add_on' => $request->add_on,
             'tare_weight' => $request->tare_weight,
-            'net_weight' => $request->gross_weight - $request->tare_weight,
+            'net_weight' => ($request->gross_weight + $request->add_on) - $request->tare_weight,
             'gross_time' => $request->gross_time,
             'tare_time' => $request->tare_time,
             'net_time' => $request->net_time,
@@ -265,8 +268,9 @@ class TransactionController extends Controller
             'company' => $request->company,
             'address' => $request->address,
             'gross_weight' => $request->gross_weight,
+            'add_on' => $request->add_on,
             'tare_weight' => $request->tare_weight,
-            'net_weight' => $request->gross_weight - $request->tare_weight,
+            'net_weight' => ($request->gross_weight + $request->add_on) - $request->tare_weight,
             'gross_time' => $request->gross_time,
             'tare_time' => $request->tare_time,
             'net_time' => $request->net_time,

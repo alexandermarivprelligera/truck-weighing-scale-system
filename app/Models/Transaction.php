@@ -21,6 +21,7 @@ class Transaction extends Model
     'address',
     //'moisture_content',
     'gross_weight',
+    'add_on',
     'tare_weight',
     'net_weight',
     'clerk',

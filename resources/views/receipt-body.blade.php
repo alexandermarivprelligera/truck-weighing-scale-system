@@ -40,7 +40,11 @@
 <hr>
 
 <p>Gross: {{ $transaction->gross_weight }} kg  {{ $transaction->gross_time }}</p>
-
+<!--
+@if(!empty($transaction->add_on))
+<p>Add On: {{ $transaction->add_on }} kg</p>
+@endif
+-->
 <p>Tare: {{ $transaction->tare_weight }} kg   {{ $transaction->tare_time }}</p>
 
 <p>Net: {{ $transaction->net_weight }} kg</p>

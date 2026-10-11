@@ -99,7 +99,7 @@
     </div>
 
 
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-4 gap-4">
 
         <div>
             <input type="number" id="gross_weight" name="gross_weight" class="p-2 border rounded w-full bg-white-100" placeholder="Gross Weight">
@@ -108,6 +108,10 @@
                 hover:bg-orange-900 transition">
                 Capture Gross
             </button>
+        </div>
+
+        <div>
+            <input type="number" id="add_on" name="add_on" class="p-2 border rounded w-full bg-white-100" value="{{ old('add_on') }}" placeholder="Add On">
         </div>
 
         <div>
@@ -192,13 +196,18 @@ function calculateNetWeight()
             document.getElementById('gross_weight').value
         ) || 0;
 
+    let addOn =
+        parseFloat(
+            document.getElementById('add_on').value
+        ) || 0;
+
     let tare =
         parseFloat(
             document.getElementById('tare_weight').value
         ) || 0;
 
     document.getElementById('net_weight').value =
-        gross - tare;
+        (gross + addOn) - tare;
 }
 
 // ===========================
@@ -351,6 +360,11 @@ document.addEventListener('DOMContentLoaded', function ()
     // NET WEIGHT EVENTS
     // =======================
     document.getElementById('gross_weight')
+        .addEventListener(
+            'input',
+            calculateNetWeight
+        );
+    document.getElementById('add_on')
         .addEventListener(
             'input',
             calculateNetWeight

@@ -114,7 +114,7 @@
     </div>
 
 
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-4 gap-4">
 
         <div>
             <input type="number" id="gross_weight" name="gross_weight" class="p-2 border rounded w-full bg-white-100" 
@@ -124,6 +124,11 @@
                 hover:bg-orange-900 transition">
                 Capture Gross
             </button>
+        </div>
+
+        <div>
+            <input type="number" id="add_on" name="add_on" class="p-2 border rounded w-full bg-white-100" 
+            value="{{ old('add_on',$transaction->add_on) }}" placeholder="Add On">
         </div>
 
         <div>
@@ -188,6 +193,7 @@
     <input type="hidden" name="material"  id="print_material" value="{{ $transaction->material }}">
     <input type="hidden" name="product"  id="print_product" value="{{ $transaction->product }}">
     <input type="hidden" name="gross_weight"  id="print_gross_weight" value="{{ $transaction->gross_weight }}">
+    <input type="hidden" name="add_on"  id="print_add_on" value="{{ $transaction->add_on }}">
     <input type="hidden" name="tare_weight"  id="print_tare_weight" value="{{ $transaction->tare_weight }}">
     <input type="hidden" name="net_weight"  id="print_net_weight" value="{{ $transaction->net_weight }}">
     <input type="hidden" name="gross_time"  id="print_gross_time" value="{{ $transaction->gross_time }}">
@@ -217,6 +223,7 @@
         document.getElementById('print_material').value = material ? material.value : "";
         document.getElementById('print_product').value = document.querySelector('input[name="product"]').value;
         document.getElementById('print_gross_weight').value = document.getElementById('gross_weight').value;
+        document.getElementById('print_add_on').value = document.getElementById('add_on').value;
         document.getElementById('print_tare_weight').value = document.getElementById('tare_weight').value;
         document.getElementById('print_net_weight').value = document.getElementById('net_weight').value;
         document.getElementById('print_gross_time').value = document.getElementById('gross_time').value;
@@ -250,13 +257,18 @@ function calculateNetWeight()
             document.getElementById('gross_weight').value
         ) || 0;
 
+    let addOn =
+        parseFloat(
+            document.getElementById('add_on').value
+        ) || 0;
+
     let tare =
         parseFloat(
             document.getElementById('tare_weight').value
         ) || 0;
 
     document.getElementById('net_weight').value =
-        gross - tare;
+        (gross + addOn) - tare;
 }
 
 // ===========================
@@ -415,6 +427,11 @@ document.addEventListener('DOMContentLoaded', function ()
     // NET WEIGHT EVENTS
     // =======================
     document.getElementById('gross_weight')
+        .addEventListener(
+            'input',
+            calculateNetWeight
+        );
+    document.getElementById('add_on')
         .addEventListener(
             'input',
             calculateNetWeight
