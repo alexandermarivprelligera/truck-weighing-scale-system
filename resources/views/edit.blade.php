@@ -16,14 +16,12 @@
     @csrf
     @method('PUT')
 
-<input type="hidden" name="transaction_no" value="{{ $transaction->transaction_no }}">
     <!-- Number / Client / Address -->
     <div class="grid grid-cols-3 gap-4">
-        <!--div class="mb-4"-->
-        <!--label-- class="font-semibold">Transaction No.</!--label-->
-        
-
-        <input type="text" value="{{ $transaction->transaction_no }}" readonly class="border rounded p-2 bg-gray-100"> <!--/div-->
+        <input type="text" id="transaction_no" name="transaction_no"
+            value="{{ old('transaction_no', $transaction->transaction_no) }}"
+            class="border rounded p-2 bg-white focus:ring-2 focus:ring-blue-500"
+            placeholder="Transaction No."> <!--/div-->
         <select id="company_select" name="client_id" required class="w-full p-2 border rounded">
             <option value="">
                 Select Client
@@ -147,10 +145,32 @@
 
     </div>
 
-    <div class="grid grid-cols-3 gap-4">
-        <input type="hidden" name="gross_time" id="gross_time" value="{{ $transaction->gross_time }}">
-        <input type="hidden" name="tare_time" id="tare_time">
-        <input type="hidden" name="net_time" id="net_time">
+    <!-- Transaction date + weighing timestamps (editable) -->
+    <div class="grid grid-cols-4 gap-4">
+        <div>
+            <label class="block mb-2">Transaction Date &amp; Time</label>
+            <input type="datetime-local" step="1" id="transaction_date" name="transaction_date"
+                value="{{ old('transaction_date', $transaction->created_at ? $transaction->created_at->format('Y-m-d\TH:i:s') : '') }}"
+                class="p-2 border rounded w-full bg-white">
+        </div>
+        <div>
+            <label class="block mb-2">Gross Time</label>
+            <input type="datetime-local" step="1" id="gross_time" name="gross_time"
+                value="{{ old('gross_time', $transaction->gross_time ? \Carbon\Carbon::parse($transaction->gross_time)->format('Y-m-d\TH:i:s') : '') }}"
+                class="p-2 border rounded w-full bg-white">
+        </div>
+        <div>
+            <label class="block mb-2">Tare Time</label>
+            <input type="datetime-local" step="1" id="tare_time" name="tare_time"
+                value="{{ old('tare_time', $transaction->tare_time ? \Carbon\Carbon::parse($transaction->tare_time)->format('Y-m-d\TH:i:s') : '') }}"
+                class="p-2 border rounded w-full bg-white">
+        </div>
+        <div>
+            <label class="block mb-2">Net Time</label>
+            <input type="datetime-local" step="1" id="net_time" name="net_time"
+                value="{{ old('net_time', $transaction->net_time ? \Carbon\Carbon::parse($transaction->net_time)->format('Y-m-d\TH:i:s') : '') }}"
+                class="p-2 border rounded w-full bg-white">
+        </div>
     </div>
 
     <!--div class="grid grid-cols-2 gap-4"-->
@@ -196,9 +216,10 @@
     <input type="hidden" name="add_on"  id="print_add_on" value="{{ $transaction->add_on }}">
     <input type="hidden" name="tare_weight"  id="print_tare_weight" value="{{ $transaction->tare_weight }}">
     <input type="hidden" name="net_weight"  id="print_net_weight" value="{{ $transaction->net_weight }}">
+    <input type="hidden" name="transaction_date" id="print_transaction_date" value="{{ $transaction->created_at ? $transaction->created_at->format('Y-m-d\TH:i:s') : '' }}">
     <input type="hidden" name="gross_time"  id="print_gross_time" value="{{ $transaction->gross_time }}">
     <input type="hidden" name="tare_time"  id="print_tare_time" value="{{ $transaction->tare_time }}">
-    <!--input type="hidden" name="net_time"  id="print_net_time" value="{{ $transaction->net_time }}"-->
+    <input type="hidden" name="net_time"  id="print_net_time" value="{{ $transaction->net_time }}">
     <input type="hidden" name="clerk" value="{{ auth()->user()->name }}">
 
         <button type="submit" onClick="preparePrint()" class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-900">
@@ -214,6 +235,7 @@
 //======================
     function preparePrint() {
         document.getElementById('print_transaction_no').value = document.querySelector('input[name="transaction_no"]').value;
+        document.getElementById('print_transaction_date').value = document.getElementById('transaction_date').value;
         document.getElementById('print_plate_number').value = document.querySelector('select[name="plate_number"]').selectedOptions[0]?.text || '';
         document.getElementById('print_driver_name').value = document.querySelector('select[name="driver_name"]').selectedOptions[0]?.text || '';
         document.getElementById('print_company').value = document.querySelector('select[name="client_id"]').selectedOptions[0]?.text || '';
@@ -240,7 +262,7 @@ function setTime(fieldId)
     let formatted =
         now.getFullYear() + '-' +
         String(now.getMonth() + 1).padStart(2, '0') + '-' +
-        String(now.getDate()).padStart(2, '0') + ' ' +
+        String(now.getDate()).padStart(2, '0') + 'T' +
         String(now.getHours()).padStart(2, '0') + ':' +
         String(now.getMinutes()).padStart(2, '0') + ':' +
         String(now.getSeconds()).padStart(2, '0');

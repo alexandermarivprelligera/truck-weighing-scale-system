@@ -80,11 +80,19 @@ class TransactionController extends Controller
             $nextNumber = '0001';
         }
 
-        $transactionNo = $today . '-' . $nextNumber;
+        $submittedNo = trim((string) $request->transaction_no);
+        $transactionNo = $submittedNo !== ''
+            ? $submittedNo
+            : $today . '-' . $nextNumber;
 
         $validated = $request->validate([
             'client_id' => ['required', 'exists:clients,id'],
             'driver_id' => ['nullable', 'exists:drivers,id'],
+            'transaction_no' => ['nullable', 'string', 'max:255'],
+            'transaction_date' => ['nullable', 'date'],
+            'gross_time' => ['nullable', 'date'],
+            'tare_time' => ['nullable', 'date'],
+            'net_time' => ['nullable', 'date'],
         ]);
 
         $client = Client::findOrFail($validated['client_id']);
@@ -95,7 +103,7 @@ class TransactionController extends Controller
 
         $netWeight = ($request->gross_weight + $request->add_on) - $request->tare_weight;
 
-        Transaction::create([
+        $transaction = Transaction::create([
             'transaction_no' => $transactionNo,
             'plate_number' => $request->plate_number,
             'driver_name' => $request->driver_name,
@@ -126,6 +134,12 @@ class TransactionController extends Controller
             : null,
         ]);
 
+        // Optional: let the clerk set/backdate the transaction date & time.
+        if ($request->filled('transaction_date')) {
+            $transaction->created_at = Carbon::parse($request->transaction_date);
+            $transaction->save();
+        }
+
         return redirect('/transactions/create')->with('success', 'Transaction Saved!');
         });
     }
@@ -155,6 +169,11 @@ class TransactionController extends Controller
         $validated = $request->validate([
             'client_id' => ['required', 'exists:clients,id'],
             'driver_id' => ['nullable', 'exists:drivers,id'],
+            'transaction_no' => ['nullable', 'string', 'max:255'],
+            'transaction_date' => ['nullable', 'date'],
+            'gross_time' => ['nullable', 'date'],
+            'tare_time' => ['nullable', 'date'],
+            'net_time' => ['nullable', 'date'],
         ]);
         $client = Client::findOrFail($validated['client_id']);
 
@@ -162,7 +181,15 @@ class TransactionController extends Controller
             abort(422, 'The selected driver does not belong to this client.');
         }
 
+        // Optional: let the clerk change/backdate the transaction date & time.
+        if ($request->filled('transaction_date')) {
+            $transaction->created_at = Carbon::parse($request->transaction_date);
+        }
+
         $transaction->update([
+            'transaction_no' => trim((string) $request->transaction_no) !== ''
+                ? trim($request->transaction_no)
+                : $transaction->transaction_no,
             'plate_number' => $request->plate_number,
             'driver_name' => $request->driver_name,
             'company' => $client->company,
@@ -175,9 +202,9 @@ class TransactionController extends Controller
             'add_on' => $request->add_on,
             'tare_weight' => $request->tare_weight,
             'net_weight' => ($request->gross_weight + $request->add_on) - $request->tare_weight,
-            'gross_time' => $request->gross_time,
-            'tare_time' => $request->tare_time,
-            'net_time' => $request->net_time,
+            'gross_time' => $request->gross_time ? Carbon::parse($request->gross_time)->format('Y-m-d H:i:s') : null,
+            'tare_time' => $request->tare_time ? Carbon::parse($request->tare_time)->format('Y-m-d H:i:s') : null,
+            'net_time' => $request->net_time ? Carbon::parse($request->net_time)->format('Y-m-d H:i:s') : null,
         ]);
 
         return redirect('/transactions')
@@ -271,9 +298,10 @@ class TransactionController extends Controller
             'add_on' => $request->add_on,
             'tare_weight' => $request->tare_weight,
             'net_weight' => ($request->gross_weight + $request->add_on) - $request->tare_weight,
-            'gross_time' => $request->gross_time,
-            'tare_time' => $request->tare_time,
-            'net_time' => $request->net_time,
+            'gross_time' => $request->gross_time ? Carbon::parse($request->gross_time)->format('Y-m-d H:i:s') : null,
+            'tare_time' => $request->tare_time ? Carbon::parse($request->tare_time)->format('Y-m-d H:i:s') : null,
+            'net_time' => $request->net_time ? Carbon::parse($request->net_time)->format('Y-m-d H:i:s') : null,
+            'created_at' => $request->transaction_date ? Carbon::parse($request->transaction_date) : Carbon::now(),
             'clerk' => auth()->user()->name,
             'approved_by' => $request->approved_by,
         ];

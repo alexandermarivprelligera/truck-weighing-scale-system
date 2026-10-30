@@ -14,13 +14,12 @@
 
 <form method="POST" action="/transactions" class="space-y-4">
     @csrf
-<input type="hidden" name="transaction_no" value="{{ $transactionNo }}">
     <!-- Number / Client / Address -->
     <div class="grid grid-cols-3 gap-4">
-        <!--div class="mb-4"-->
-        <!--label-- class="font-semibold">Transaction No.</!--label-->
-
-        <input type="text" value="{{ $transactionNo }}" readonly class="border rounded p-2 bg-gray-100"> <!--/div-->
+        <input type="text" id="transaction_no" name="transaction_no"
+            value="{{ old('transaction_no', $transactionNo) }}"
+            class="border rounded p-2 bg-white focus:ring-2 focus:ring-blue-500"
+            placeholder="Transaction No."> <!--/div-->
         <select id="company_select" name="client_id" required class="w-full p-2 border rounded">
             <option value="">
                 Select Client
@@ -129,10 +128,28 @@
 
     </div>
 
-    <div class="grid grid-cols-3 gap-4">
-        <input type="hidden" name="gross_time" id="gross_time">
-        <!--input type="hidden" name="tare_time" id="tare_time">
-        <input type="hidden" name="net_time" id="net_time"-->
+    <!-- Transaction date + weighing timestamps (editable) -->
+    <div class="grid grid-cols-4 gap-4">
+        <div>
+            <label class="block mb-2">Transaction Date &amp; Time</label>
+            <input type="datetime-local" step="1" id="transaction_date" name="transaction_date"
+                value="{{ old('transaction_date') }}" class="p-2 border rounded w-full bg-white">
+        </div>
+        <div>
+            <label class="block mb-2">Gross Time</label>
+            <input type="datetime-local" step="1" id="gross_time" name="gross_time"
+                value="{{ old('gross_time') }}" class="p-2 border rounded w-full bg-white">
+        </div>
+        <div>
+            <label class="block mb-2">Tare Time</label>
+            <input type="datetime-local" step="1" id="tare_time" name="tare_time"
+                value="{{ old('tare_time') }}" class="p-2 border rounded w-full bg-white">
+        </div>
+        <div>
+            <label class="block mb-2">Net Time</label>
+            <input type="datetime-local" step="1" id="net_time" name="net_time"
+                value="{{ old('net_time') }}" class="p-2 border rounded w-full bg-white">
+        </div>
     </div>
 
     <!--div class="grid grid-cols-2 gap-4"-->
@@ -179,7 +196,7 @@ function setTime(fieldId)
     let formatted =
         now.getFullYear() + '-' +
         String(now.getMonth() + 1).padStart(2, '0') + '-' +
-        String(now.getDate()).padStart(2, '0') + ' ' +
+        String(now.getDate()).padStart(2, '0') + 'T' +
         String(now.getHours()).padStart(2, '0') + ':' +
         String(now.getMinutes()).padStart(2, '0') + ':' +
         String(now.getSeconds()).padStart(2, '0');
@@ -260,6 +277,14 @@ document.addEventListener('DOMContentLoaded', function ()
 
     if (transactionNo) {
         console.log(transactionNo.value);
+    }
+
+    // Default the transaction date/time to "now" (browser local time)
+    const transactionDate =
+        document.getElementById('transaction_date');
+
+    if (transactionDate && !transactionDate.value) {
+        setTime('transaction_date');
     }
 
     // =======================

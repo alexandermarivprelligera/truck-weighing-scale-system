@@ -28,7 +28,12 @@
 </div>
 
 <hr>
-<p>Date: {{ date('F d, Y') }}</p>
+@php
+    $receiptDate = !empty($transaction->created_at)
+        ? \Carbon\Carbon::parse($transaction->created_at)
+        : \Carbon\Carbon::now();
+@endphp
+<p>Date: {{ $receiptDate->format('F d, Y h:i A') }}</p>
 <p>Transaction #: {{ $transaction->transaction_no }}</p>
 <p>Plate #: {{ $transaction->plate_number }}</p>
 <!--p>Driver: {{ $transaction->driver_name }}</!--p>
