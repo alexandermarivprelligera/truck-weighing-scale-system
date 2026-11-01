@@ -6,6 +6,7 @@ use App\Models\Transaction;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class TransactionController extends Controller
@@ -40,21 +41,7 @@ class TransactionController extends Controller
     {
         $clients = Client::with('drivers')->orderBy('company')->get();
 
-        $today = Carbon::now()->format('md');
-
-        /*Lock rows to avoid duplicates*/
-        $last = Transaction::where('transaction_no', 'like', $today . '-%')
-            ->orderBy('id', 'asc')
-            ->first();
-
-        if ($last) {
-            $lastNumber = (int) substr($last->transaction_no, 5);
-            $nextNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $nextNumber = '0001';
-        }
-
-        $transactionNo = $today . '-' . $nextNumber;
+        $transactionNo = $this->nextTransactionNumber();
 
         return view('create', compact('clients', 'transactionNo'));
     }
@@ -66,33 +53,23 @@ class TransactionController extends Controller
     {
         return DB::transaction(function() use($request) {
 
-        $today = Carbon::now()->format('md');
-
-        $last = Transaction::where('transaction_no', 'like', $today . '-%')
-            ->lockForUpdate()
-            ->orderBy('id', 'asc')
-            ->first();
-
-        if ($last) {
-            $lastNumber = (int) substr($last->transaction_no, 5);
-            $nextNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $nextNumber = '0001';
-        }
-
         $submittedNo = trim((string) $request->transaction_no);
+        $request->merge(['transaction_no' => $submittedNo]);
+
         $transactionNo = $submittedNo !== ''
             ? $submittedNo
-            : $today . '-' . $nextNumber;
+            : $this->nextTransactionNumber(true);
 
         $validated = $request->validate([
             'client_id' => ['required', 'exists:clients,id'],
             'driver_id' => ['nullable', 'exists:drivers,id'],
-            'transaction_no' => ['nullable', 'string', 'max:255'],
+            'transaction_no' => ['nullable', 'string', 'max:255', Rule::unique('transactions', 'transaction_no')],
             'transaction_date' => ['nullable', 'date'],
             'gross_time' => ['nullable', 'date'],
             'tare_time' => ['nullable', 'date'],
             'net_time' => ['nullable', 'date'],
+        ], [
+            'transaction_no.unique' => 'This transaction number is already taken.',
         ]);
 
         $client = Client::findOrFail($validated['client_id']);
@@ -166,14 +143,26 @@ class TransactionController extends Controller
      */
     public function update(Request $request, Transaction $transaction)
     {
+        $submittedNo = trim((string) $request->transaction_no);
+        $request->merge(['transaction_no' => $submittedNo]);
+
+        $numberRules = ['nullable', 'string', 'max:255'];
+        // Only check uniqueness when the clerk actually changes the number, so
+        // old rows that already share a number can still be edited and saved.
+        if ($submittedNo !== '' && $submittedNo !== $transaction->transaction_no) {
+            $numberRules[] = Rule::unique('transactions', 'transaction_no')->ignore($transaction->id);
+        }
+
         $validated = $request->validate([
             'client_id' => ['required', 'exists:clients,id'],
             'driver_id' => ['nullable', 'exists:drivers,id'],
-            'transaction_no' => ['nullable', 'string', 'max:255'],
+            'transaction_no' => $numberRules,
             'transaction_date' => ['nullable', 'date'],
             'gross_time' => ['nullable', 'date'],
             'tare_time' => ['nullable', 'date'],
             'net_time' => ['nullable', 'date'],
+        ], [
+            'transaction_no.unique' => 'This transaction number is already taken.',
         ]);
         $client = Client::findOrFail($validated['client_id']);
 
@@ -187,8 +176,8 @@ class TransactionController extends Controller
         }
 
         $transaction->update([
-            'transaction_no' => trim((string) $request->transaction_no) !== ''
-                ? trim($request->transaction_no)
+            'transaction_no' => $submittedNo !== ''
+                ? $submittedNo
                 : $transaction->transaction_no,
             'plate_number' => $request->plate_number,
             'driver_name' => $request->driver_name,
@@ -252,6 +241,33 @@ class TransactionController extends Controller
         );
 
         return $pdf->download('Filtered-Transactions.pdf');
+    }
+
+    /**
+     * Build the next transaction number for today (MMDD-0001).
+     *
+     * Uses the highest numeric suffix already issued today (not the first row
+     * of the day), so the pre-filled number is correct after the first entry.
+     * Manually typed numbers with a non-numeric suffix are ignored.
+     */
+    private function nextTransactionNumber(bool $lockForUpdate = false): string
+    {
+        $prefix = Carbon::now()->format('md') . '-';
+
+        $query = Transaction::where('transaction_no', 'like', $prefix . '%');
+        if ($lockForUpdate) {
+            $query->lockForUpdate();
+        }
+
+        $max = 0;
+        foreach ($query->pluck('transaction_no') as $number) {
+            $suffix = substr($number, strlen($prefix));
+            if ($suffix !== '' && ctype_digit($suffix)) {
+                $max = max($max, (int) $suffix);
+            }
+        }
+
+        return $prefix . str_pad((string) ($max + 1), 4, '0', STR_PAD_LEFT);
     }
 
     private function filteredTransactionsQuery(Request $request)

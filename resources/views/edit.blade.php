@@ -18,10 +18,15 @@
 
     <!-- Number / Client / Address -->
     <div class="grid grid-cols-3 gap-4">
-        <input type="text" id="transaction_no" name="transaction_no"
-            value="{{ old('transaction_no', $transaction->transaction_no) }}"
-            class="border rounded p-2 bg-white focus:ring-2 focus:ring-blue-500"
-            placeholder="Transaction No."> <!--/div-->
+        <div>
+            <input type="text" id="transaction_no" name="transaction_no"
+                value="{{ old('transaction_no', $transaction->transaction_no) }}"
+                class="border rounded p-2 bg-white w-full focus:ring-2 focus:ring-blue-500 @error('transaction_no') border-red-500 @enderror"
+                placeholder="Transaction No.">
+            @error('transaction_no')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
         <select id="company_select" name="client_id" required class="w-full p-2 border rounded">
             <option value="">
                 Select Client

@@ -16,10 +16,15 @@
     @csrf
     <!-- Number / Client / Address -->
     <div class="grid grid-cols-3 gap-4">
-        <input type="text" id="transaction_no" name="transaction_no"
-            value="{{ old('transaction_no', $transactionNo) }}"
-            class="border rounded p-2 bg-white focus:ring-2 focus:ring-blue-500"
-            placeholder="Transaction No."> <!--/div-->
+        <div>
+            <input type="text" id="transaction_no" name="transaction_no"
+                value="{{ old('transaction_no', $transactionNo) }}"
+                class="border rounded p-2 bg-white w-full focus:ring-2 focus:ring-blue-500 @error('transaction_no') border-red-500 @enderror"
+                placeholder="Transaction No.">
+            @error('transaction_no')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
         <select id="company_select" name="client_id" required class="w-full p-2 border rounded">
             <option value="">
                 Select Client
@@ -27,6 +32,7 @@
             @foreach($clients as $client)
                 <option
                     value="{{ $client->id }}"
+                    {{ (string) old('client_id') === (string) $client->id ? 'selected' : '' }}
                     data-address="{{ $client->address }}"
                     data-drivers='@json($client->drivers->map(fn ($driver) => ["id" => $driver->id, "driver_name" => $driver->driver_name, "plate_number" => $driver->plate_number])->values())'>
                     {{ $client->company }}
@@ -34,7 +40,7 @@
             @endforeach
         </select>
         <!--input type="text" id="company" name="company" class="w-full p-2 border rounded" placeholder="New Client"-->
-        <input type="text" id="address" class="p-2 border rounded w-full focus:ring-2 focus:ring-blue-500" name="address" placeholder="Address">
+        <input type="text" id="address" class="p-2 border rounded w-full focus:ring-2 focus:ring-blue-500" name="address" value="{{ old('address') }}" placeholder="Address">
     </div>
 
     <!-- Plate Number / Driver -->
@@ -55,8 +61,8 @@
 
             <select name="transaction_type" id="transaction_type"
                 class="w-full p-2 border rounded">
-                <option value="incoming">Incoming</option>
-                <option value="outgoing">Outgoing</option>
+                <option value="incoming" {{ old('transaction_type', 'incoming') === 'incoming' ? 'selected' : '' }}>Incoming</option>
+                <option value="outgoing" {{ old('transaction_type') === 'outgoing' ? 'selected' : '' }}>Outgoing</option>
             </select>
         </div>
 
@@ -65,23 +71,23 @@
 
             <div class="grid grid-cols-4 gap-2">
                 <label class="flex items-center gap-2">
-                    <input type="radio" name="material" value="Solid Waste"> Solid Waste
+                    <input type="radio" name="material" value="Solid Waste" {{ old('material') === 'Solid Waste' ? 'checked' : '' }}> Solid Waste
                 </label>
                 <label class="flex items-center gap-2">
-                    <input type="radio" name="material" value="Minerals"> Minerals
+                    <input type="radio" name="material" value="Minerals" {{ old('material') === 'Minerals' ? 'checked' : '' }}> Minerals
                 </label>
                 <label class="flex items-center gap-2">
-                    <input type="radio" name="material" value="Bottles"> Bottles
+                    <input type="radio" name="material" value="Bottles" {{ old('material') === 'Bottles' ? 'checked' : '' }}> Bottles
                 </label>
                 <label class="flex items-center gap-2">
-                    <input type="radio" name="material" value="Tin Can"> Tin Can
+                    <input type="radio" name="material" value="Tin Can" {{ old('material') === 'Tin Can' ? 'checked' : '' }}> Tin Can
                 </label>
             </div>
         </div>
 
         <div id="product_section">
             <label class="block mb-2">Product</label>
-            <input type="text" name="product" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
+            <input type="text" name="product" value="{{ old('product') }}" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500">
         </div>
 
         <!--div>
@@ -101,7 +107,7 @@
     <div class="grid grid-cols-4 gap-4">
 
         <div>
-            <input type="number" id="gross_weight" name="gross_weight" class="p-2 border rounded w-full bg-white-100" placeholder="Gross Weight">
+            <input type="number" id="gross_weight" name="gross_weight" value="{{ old('gross_weight') }}" class="p-2 border rounded w-full bg-white-100" placeholder="Gross Weight">
 
             <button type="button" onclick="captureWeight('gross')" class="mt-2 bg-orange-600 text-white px-3 py-2 rounded 
                 hover:bg-orange-900 transition">
@@ -114,7 +120,7 @@
         </div>
 
         <div>
-            <input type="number" id="tare_weight" name="tare_weight" class="p-2 border rounded w-full bg-white-100 focus:ring-2 focus:ring-blue-500" placeholder="Tare Weight">
+            <input type="number" id="tare_weight" name="tare_weight" value="{{ old('tare_weight') }}" class="p-2 border rounded w-full bg-white-100 focus:ring-2 focus:ring-blue-500" placeholder="Tare Weight">
 
             <button type="button" onclick="captureWeight('tare')"class="mt-2 bg-purple-600 text-white px-3 py-2 rounded 
                 hover:bg-purple-900 transition">
@@ -355,6 +361,28 @@ document.addEventListener('DOMContentLoaded', function ()
             document.getElementById('driver_id').value =
                 this.options[this.selectedIndex]?.dataset.driverId || '';
         });
+
+        // After a validation error, rebuild the client's driver/plate lists and
+        // restore the previous selection so the clerk does not lose the entry.
+        if (companySelect.value) {
+            companySelect.dispatchEvent(new Event('change'));
+
+            const savedAddress = @json(old('address'));
+            const savedDriver = @json(old('driver_name'));
+            const savedPlate = @json(old('plate_number'));
+
+            if (savedAddress) {
+                document.getElementById('address').value = savedAddress;
+            }
+            if (savedDriver) {
+                const driverSelect = document.getElementById('driver_name');
+                driverSelect.value = savedDriver;
+                driverSelect.dispatchEvent(new Event('change'));
+            }
+            if (savedPlate) {
+                document.getElementById('plate_number').value = savedPlate;
+            }
+        }
     }
     // =======================
     // MANUAL COMPANY INPUT
@@ -399,6 +427,14 @@ document.addEventListener('DOMContentLoaded', function ()
             'input',
             calculateNetWeight
         );
+
+    // Recalculate after a validation error, when old() restores the weights.
+    if (
+        document.getElementById('gross_weight').value ||
+        document.getElementById('tare_weight').value
+    ) {
+        calculateNetWeight();
+    }
 
     // =======================
     // LIVE SCALE DISPLAY
